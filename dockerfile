@@ -50,60 +50,30 @@ COPY --from=backend-build /usr/local/lib/python3.9/site-packages /usr/local/lib/
 # Copy frontend build from frontend-build stage
 COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
 
-# Create nginx configuration for DigitalOcean App Platform
-RUN echo 'server {
-    listen 80;
-    server_name _;
-
-    # Frontend static files
-    location / {
-        root /usr/share/nginx/html;
-        try_files $uri $uri/ /index.html;
-        add_header Cache-Control "public, max-age=3600";
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Error handling
-    error_page 404 /index.html;
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root /usr/share/nginx/html;
-    }
-}' > /etc/nginx/conf.d/default.conf
+# Copy Nginx configuration
+COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 
 # Create supervisord configuration
-RUN echo '[supervisord]
-nodaemon=true
-
-[program:nginx]
-command=nginx -g "daemon off;"
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:backend]
-command=python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-directory=/app/backend
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+\n\
+[program:nginx]\n\
+command=nginx -g "daemon off;"\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
+\n\
+[program:backend]\n\
+command=python -m uvicorn app.main:app --host 0.0.0.0 --port 8000\n\
+directory=/app/backend\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose port
