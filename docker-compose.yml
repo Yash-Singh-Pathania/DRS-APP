@@ -43,8 +43,8 @@ services:
     environment:
       - NODE_ENV=production
       # These environment variables will be used by the nginx config
-      - DIGITALOCEAN_APP_BACKEND_INTERNAL_HOST=backend
-      - DIGITALOCEAN_APP_BACKEND_INTERNAL_PORT=8000
+      - NGINX_BACKEND_HOST=backend  # For local Nginx, resolves to the 'backend' service below
+      - NGINX_BACKEND_PORT=8000   # Port the 'backend' service listens on
     depends_on:
       backend:
         condition: service_healthy

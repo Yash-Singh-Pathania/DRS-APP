@@ -66,9 +66,7 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chmod g+rwx /var/cache/nginx /var/run /var/log/nginx && \
     chgrp -R root /var/cache/nginx
 
-# Environment variables for backend configuration
-ENV DIGITALOCEAN_APP_BACKEND_INTERNAL_HOST=backend
-ENV DIGITALOCEAN_APP_BACKEND_INTERNAL_PORT=8000
+
 
 # Expose port 80
 EXPOSE 80
