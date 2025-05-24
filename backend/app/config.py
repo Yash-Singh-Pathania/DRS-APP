@@ -3,7 +3,15 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     # Database settings
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/drs_app")
+    _DATABASE_URL: str = os.getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/drs_app")
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        # Handle both postgresql:// and postgres:// schemes
+        url = self._DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgres://", 1)
+        return url
     
     # JWT settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-please-change-in-production")
