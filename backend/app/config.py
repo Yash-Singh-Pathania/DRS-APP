@@ -16,25 +16,11 @@ class Settings(BaseSettings):
     
     @property
     def DATABASE_URL(self) -> str:
-        # If DATABASE_URL is provided, use it (with necessary modifications)
-        if self._DATABASE_URL:
-            url = self._DATABASE_URL
-            # Convert postgresql:// to postgres:// if needed
-            if url.startswith("postgresql://"):
-                url = url.replace("postgresql://", "postgres://", 1)
-            
-            # Remove sslmode parameter as it's not supported by asyncpg directly
-            if "?sslmode=" in url:
-                # Extract the base URL without the query parameters
-                base_url = url.split("?")[0]
-                # Add ssl=true parameter instead
-                return f"{base_url}?ssl=true"
-            
-            return url
-        
-        # Otherwise, build the connection URL from individual credentials
-        ssl_param = "?ssl=true" if self.DB_SSL else ""
-        return f"postgres://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}"
+        # Build the connection URL from individual credentials
+        ssl_param = "?sslmode=require" if self.DB_SSL else ""
+        db_url = f"postgres://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}"
+        print(f"Using database URL: postgres://{self.DB_USERNAME}:****@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}")
+        return db_url
     
     # JWT settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-please-change-in-production")
