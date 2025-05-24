@@ -24,7 +24,7 @@ fi
 
 echo "Generating nginx configuration from template /etc/nginx/nginx.conf.template..."
 # Substitute our resolved NGINX_BACKEND_HOST and NGINX_BACKEND_PORT into the template
-envsubst '${NGINX_BACKEND_HOST} ${NGINX_BACKEND_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '${NGINX_BACKEND_HOST} ${NGINX_BACKEND_PORT}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
 echo "Generated Nginx Configuration (/etc/nginx/conf.d/default.conf):"
 cat /etc/nginx/conf.d/default.conf
