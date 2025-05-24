@@ -1,0 +1,44 @@
+name: drs-app
+services:
+  - name: drs-web
+    github:
+      repo: your-github-repo-name
+      branch: main
+      deploy_on_push: true
+    build_command: |
+      # This will use your Dockerfile at the root
+      echo "Using Dockerfile for build"
+    run_command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${DATABASE_URL}
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: ${SECRET_KEY}
+      - key: DOMAIN
+        scope: RUN_TIME
+        value: ${DOMAIN}
+      - key: SMTP_HOST
+        scope: RUN_TIME
+        value: ${SMTP_HOST}
+      - key: SMTP_PORT
+        scope: RUN_TIME
+        value: ${SMTP_PORT}
+      - key: SMTP_USER
+        scope: RUN_TIME
+        value: ${SMTP_USER}
+      - key: SMTP_PASSWORD
+        scope: RUN_TIME
+        value: ${SMTP_PASSWORD}
+      - key: SMTP_FROM_EMAIL
+        scope: RUN_TIME
+        value: ${SMTP_FROM_EMAIL}
+      - key: SMTP_USE_TLS
+        scope: RUN_TIME
+        value: ${SMTP_USE_TLS}
+    http_port: 80
+    routes:
+      - path: /
+    health_check:
+      http_path: /

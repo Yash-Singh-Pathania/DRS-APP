@@ -48,16 +48,66 @@ COPY --from=backend-build /app/backend /app/backend
 COPY --from=backend-build /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 
 # Copy frontend build from frontend-build stage
-COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
+COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
 
-# Copy Nginx configuration
-COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+# Create nginx configuration for DigitalOcean App Platform
+RUN echo 'server {
+    listen 80;
+    server_name _;
+
+    # Frontend static files
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "public, max-age=3600";
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Error handling
+    error_page 404 /index.html;
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}' > /etc/nginx/conf.d/default.conf
 
 # Create supervisord configuration
-RUN echo '[supervisord]\nnodaemon=true\n\n[program:nginx]\ncommand=nginx -g "daemon off;"\n\n[program:backend]\ncommand=python -m uvicorn app.main:app --host 0.0.0.0 --port 8000\ndirectory=/app/backend\nautostart=true\nautorestart=true' > /etc/supervisor/conf.d/supervisord.conf
+RUN echo '[supervisord]
+nodaemon=true
 
-# Expose ports
-EXPOSE 80 443
+[program:nginx]
+command=nginx -g "daemon off;"
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:backend]
+command=python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+directory=/app/backend
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
+
+# Expose port
+EXPOSE 80
 
 # Start supervisor to manage processes
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
