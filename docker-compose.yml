@@ -1,38 +1,37 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: drs_postgres
+
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drs_backend
     restart: always
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: drs_app
+      - "8000:8000"
+    env_file:
+      - .env.prod
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./backend:/app
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: drs_pgadmin
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: drs_frontend
     restart: always
+    ports:
+      - "8080:80"
     depends_on:
-      - postgres
-    ports:
-      - "5050:80"
+      - backend
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      # Point to the local backend service
+      - API_URL=http://backend:8000/api
 
+# Volumes
 volumes:
   postgres_data:
   pgadmin_data:

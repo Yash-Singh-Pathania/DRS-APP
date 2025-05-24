@@ -1,24 +1,64 @@
 name: drs-app
 services:
-  - name: drs-web
+  # Frontend Service
+  - name: frontend
+    dockerfile_path: frontend/Dockerfile
+    source_dir: frontend
     github:
       repo: your-github-repo-name
       branch: main
       deploy_on_push: true
-    build_command: |
-      # This will use your Dockerfile at the root
-      echo "Using Dockerfile for build"
-    run_command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+    http_port: 80
+    routes:
+      - path: /
+    health_check:
+      http_path: /
     envs:
-      - key: DATABASE_URL
+      - key: API_URL
+        scope: BUILD_TIME
+        value: ${APP_URL}/api
+
+  # Backend Service
+  - name: backend
+    dockerfile_path: backend/Dockerfile
+    source_dir: backend
+    github:
+      repo: your-github-repo-name
+      branch: main
+      deploy_on_push: true
+    http_port: 8000
+    routes:
+      - path: /api
+    health_check:
+      http_path: /api/health
+    envs:
+      # Database credentials
+      - key: DB_USERNAME
         scope: RUN_TIME
-        value: ${DATABASE_URL}
+        value: ${DB_USERNAME}
+      - key: DB_PASSWORD
+        scope: RUN_TIME
+        value: ${DB_PASSWORD}
+      - key: DB_HOST
+        scope: RUN_TIME
+        value: ${DB_HOST}
+      - key: DB_PORT
+        scope: RUN_TIME
+        value: ${DB_PORT}
+      - key: DB_DATABASE
+        scope: RUN_TIME
+        value: ${DB_DATABASE}
+      - key: DB_SSL
+        scope: RUN_TIME
+        value: "true"
+      # Other settings
       - key: SECRET_KEY
         scope: RUN_TIME
         value: ${SECRET_KEY}
       - key: DOMAIN
         scope: RUN_TIME
         value: ${DOMAIN}
+      # SMTP settings
       - key: SMTP_HOST
         scope: RUN_TIME
         value: ${SMTP_HOST}
@@ -37,8 +77,3 @@ services:
       - key: SMTP_USE_TLS
         scope: RUN_TIME
         value: ${SMTP_USE_TLS}
-    http_port: 80
-    routes:
-      - path: /
-    health_check:
-      http_path: /

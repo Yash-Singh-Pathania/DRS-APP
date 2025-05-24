@@ -15,6 +15,9 @@ COPY frontend/ ./
 # Build the frontend application
 RUN npm run build
 
+# Verify the build output
+RUN ls -la /app/frontend/dist/
+
 # Stage 2: Build backend
 FROM python:3.9-slim AS backend-build
 
@@ -50,6 +53,16 @@ COPY --from=backend-build /usr/local/lib/python3.9/site-packages /usr/local/lib/
 # Copy frontend build from frontend-build stage
 COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
 
+# Create nginx user and group and set up directories
+RUN groupadd -r nginx && \
+    useradd -r -g nginx -s /sbin/nologin -d /var/cache/nginx -c "Nginx user" nginx && \
+    mkdir -p /var/log/nginx /var/cache/nginx /var/run && \
+    chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/run
+
+# Set proper permissions for Nginx
+RUN chmod -R 755 /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html
+
 # Copy Nginx configuration
 COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 
@@ -59,6 +72,7 @@ nodaemon=true\n\
 \n\
 [program:nginx]\n\
 command=nginx -g "daemon off;"\n\
+user=nginx\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/dev/stdout\n\

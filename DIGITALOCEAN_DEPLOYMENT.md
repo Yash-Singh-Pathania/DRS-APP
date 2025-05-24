@@ -1,6 +1,6 @@
 # Deploying to DigitalOcean App Platform
 
-This guide explains how to deploy the DRS App to DigitalOcean App Platform using the combined Docker image.
+This guide explains how to deploy the DRS App to DigitalOcean App Platform using a microservices approach with separate frontend and backend containers.
 
 ## Prerequisites
 
@@ -18,22 +18,42 @@ This guide explains how to deploy the DRS App to DigitalOcean App Platform using
 
 3. **Select the repository** containing your DRS App code.
 
-4. **Configure the app**:
-   - Select "Dockerfile" as the build method
-   - Ensure the Dockerfile at the root of your repository is selected
-   - Set the HTTP port to 80
+4. **Configure the app as a microservice**:
+   - When prompted to select components, choose "Add a Component" twice to add both frontend and backend
+   - For the first component (frontend):
+     - Select the frontend directory
+     - Choose "Dockerfile" as the build method
+     - Select the Dockerfile in the frontend directory
+     - Set the HTTP port to 80
+     - Set the route to `/`
+   - For the second component (backend):
+     - Select the backend directory
+     - Choose "Dockerfile" as the build method
+     - Select the Dockerfile in the backend directory
+     - Set the HTTP port to 8000
+     - Set the route to `/api`
 
 5. **Configure environment variables**:
-   Add the following environment variables in the Environment Variables section:
-   - `DATABASE_URL`: Your PostgreSQL connection string
-   - `SECRET_KEY`: Your secret key for JWT
-   - `DOMAIN`: Your domain name (e.g., domydrs.com)
-   - `SMTP_HOST`: SMTP server host
-   - `SMTP_PORT`: SMTP server port
-   - `SMTP_USER`: SMTP username
-   - `SMTP_PASSWORD`: SMTP password
-   - `SMTP_FROM_EMAIL`: Email address to send from
-   - `SMTP_USE_TLS`: Whether to use TLS (1 for yes, 0 for no)
+   For the backend component, add the following environment variables:
+   - Database credentials:
+     - `DB_USERNAME`: `doadmin`
+     - `DB_PASSWORD`: Your database password
+     - `DB_HOST`: Your database host (e.g., `db-drs-do-user-18093928-0.e.db.ondigitalocean.com`)
+     - `DB_PORT`: `25060`
+     - `DB_DATABASE`: `drsdb`
+     - `DB_SSL`: `true`
+   - Other settings:
+     - `SECRET_KEY`: Your secret key for JWT
+     - `DOMAIN`: Your domain name (e.g., domydrs.com)
+     - `SMTP_HOST`: SMTP server host
+     - `SMTP_PORT`: SMTP server port
+     - `SMTP_USER`: SMTP username
+     - `SMTP_PASSWORD`: SMTP password
+     - `SMTP_FROM_EMAIL`: Email address to send from
+     - `SMTP_USE_TLS`: Whether to use TLS (true or false)
+   
+   For the frontend component, add:
+   - `API_URL`: `${APP_URL}/api` (DigitalOcean will replace this with the actual app URL)
 
 6. **Select a plan** that meets your requirements.
 
@@ -76,9 +96,25 @@ This guide explains how to deploy the DRS App to DigitalOcean App Platform using
 
 ## Troubleshooting
 
-- **App fails to build**: Check the build logs for errors. Common issues include missing dependencies or incorrect Dockerfile configuration.
-- **App builds but doesn't run**: Check the runtime logs. Ensure all environment variables are correctly set.
-- **Database connection issues**: Verify your DATABASE_URL is correct and that the database is accessible from the App Platform.
+### Frontend Issues
+- **Frontend fails to build**: Check the build logs for errors. Common issues include missing dependencies or incorrect Dockerfile configuration.
+- **Frontend shows but API calls fail**: Verify that the `API_URL` environment variable is correctly set and that the backend service is running.
+- **Nginx configuration issues**: Check if your Nginx configuration is correctly handling API requests and static files.
+
+### Backend Issues
+- **Backend fails to build**: Check the build logs. Ensure all dependencies are correctly specified in requirements.txt.
+- **Backend builds but doesn't run**: Check the runtime logs. Ensure all environment variables are correctly set.
+- **Database connection issues**: Verify your database credentials (DB_USERNAME, DB_PASSWORD, etc.) are correct and that the database is accessible from the App Platform.
+- **SSL issues**: Make sure DB_SSL is set to "true" for DigitalOcean managed databases.
+
+### Communication Issues
+- **Frontend can't reach backend**: Verify the routing configuration in app.yaml. The backend should be accessible at `/api`.
+- **CORS errors**: Check that the backend's CORS settings allow requests from the frontend domain.
+
+### General Troubleshooting
+- **Check logs**: DigitalOcean App Platform provides detailed logs for each component.
+- **Verify environment variables**: Double-check all environment variables are correctly set.
+- **Test locally**: Before deploying, test your microservices locally using Docker Compose to ensure they work together correctly.
 
 ## Updating Your App
 
