@@ -1,17 +1,40 @@
 import os
 from pydantic import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    # Database settings
-    _DATABASE_URL: str = os.getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/drs_app")
+    # Database settings - Connection URL approach
+    _DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL", None)
+    
+    # Database settings - Individual credentials approach
+    DB_USERNAME: str = os.getenv("DB_USERNAME", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: str = os.getenv("DB_PORT", "5432")
+    DB_DATABASE: str = os.getenv("DB_DATABASE", "drs_app")
+    DB_SSL: bool = os.getenv("DB_SSL", "false").lower() == "true"
     
     @property
     def DATABASE_URL(self) -> str:
-        # Handle both postgresql:// and postgres:// schemes
-        url = self._DATABASE_URL
-        if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgres://", 1)
-        return url
+        # If DATABASE_URL is provided, use it (with necessary modifications)
+        if self._DATABASE_URL:
+            url = self._DATABASE_URL
+            # Convert postgresql:// to postgres:// if needed
+            if url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgres://", 1)
+            
+            # Remove sslmode parameter as it's not supported by asyncpg directly
+            if "?sslmode=" in url:
+                # Extract the base URL without the query parameters
+                base_url = url.split("?")[0]
+                # Add ssl=true parameter instead
+                return f"{base_url}?ssl=true"
+            
+            return url
+        
+        # Otherwise, build the connection URL from individual credentials
+        ssl_param = "?ssl=true" if self.DB_SSL else ""
+        return f"postgres://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}"
     
     # JWT settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-please-change-in-production")
