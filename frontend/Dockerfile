@@ -13,6 +13,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Create public directory if it doesn't exist
+RUN mkdir -p /app/public
+
 # Create .env file for runtime
 RUN echo "BACKEND_HOST=${BACKEND_HOST:-backend}" > /app/.env && \
     echo "BACKEND_PORT=${BACKEND_PORT:-8000}" >> /app/.env
@@ -34,17 +37,16 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy any additional static files if they exist
-COPY --from=build /app/public/ /usr/share/nginx/html/
+# Create necessary directories and files
+RUN mkdir -p /usr/share/nginx/html/public /usr/share/nginx/html/assets && \
+    touch /usr/share/nginx/html/pwa-192x192.png
 
-# Set proper permissions and create necessary files
+# Set proper permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     find /usr/share/nginx/html -type d -exec chmod 755 {} \; && \
     find /usr/share/nginx/html -type f -exec chmod 644 {} \; && \
     chmod g+rwx /var/cache/nginx /var/run /var/log/nginx && \
-    chgrp -R root /var/cache/nginx && \
-    # Create missing PWA files if they don't exist
-    touch /usr/share/nginx/html/pwa-192x192.png
+    chgrp -R root /var/cache/nginx
 
 # Environment variables for backend configuration
 ENV BACKEND_HOST=backend
