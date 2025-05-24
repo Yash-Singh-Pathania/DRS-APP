@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  drs-wallet:
+    image: yourusername/drs-wallet:latest
+    container_name: drs_wallet
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=example.com
+      - DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
+      - SECRET_KEY=your_secret_key_here
+      - CORS_ORIGINS=https://example.com,http://example.com
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USER=your_smtp_username
+      - SMTP_PASSWORD=your_smtp_password
+      - SMTP_FROM_EMAIL=noreply@example.com
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-1}
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
+  certbot:
+    image: certbot/certbot
+    container_name: drs_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email admin@example.com -d example.com --agree-tos
