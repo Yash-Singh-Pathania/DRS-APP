@@ -31,15 +31,27 @@ RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /etc/nginx/templates && \
     chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx && \
     chmod -R 755 /var/cache/nginx /var/run /var/log/nginx
 
-# Copy nginx configuration template
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Create necessary directories
+RUN mkdir -p /etc/nginx/conf.d /usr/share/nginx/html/public /usr/share/nginx/html/assets
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Ensure the nginx configuration is valid
+RUN nginx -t
 
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Create necessary directories and files
-RUN mkdir -p /usr/share/nginx/html/public /usr/share/nginx/html/assets && \
-    touch /usr/share/nginx/html/pwa-192x192.png
+# Create a simple index.html if it doesn't exist
+RUN if [ ! -f /usr/share/nginx/html/index.html ]; then \
+        echo '<!DOCTYPE html><html><head><title>Loading...</title></head><body>Loading...</body></html>' > /usr/share/nginx/html/index.html; \
+    fi
+
+# Create a simple 50x.html error page if it doesn't exist
+RUN if [ ! -f /usr/share/nginx/html/50x.html ]; then \
+        echo '<!DOCTYPE html><html><head><title>Error</title></head><body><h1>Error</h1></body></html>' > /usr/share/nginx/html/50x.html; \
+    fi
 
 # Set proper permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
@@ -53,8 +65,8 @@ ENV BACKEND_HOST=backend
 ENV BACKEND_PORT=8000
 
 # Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.d/50-configure-nginx.sh
-RUN chmod +x /docker-entrypoint.d/50-configure-nginx.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Expose port 80
 EXPOSE 80
@@ -64,4 +76,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
 
 # Start nginx with the entrypoint script
-CMD ["/bin/sh", "/docker-entrypoint.d/50-configure-nginx.sh"]
+CMD ["/bin/sh", "/docker-entrypoint.sh"]
