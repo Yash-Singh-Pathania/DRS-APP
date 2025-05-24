@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-
   # Backend API service
   backend:
     build:
@@ -13,8 +12,18 @@ services:
       - "8000:8000"
     env_file:
       - .env.prod
-    volumes:
-      - ./backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - NODE_ENV=production
+    networks:
+      - app-network
 
   # Frontend service
   frontend:
@@ -24,14 +33,21 @@ services:
     container_name: drs_frontend
     restart: always
     ports:
-      - "8080:80"
-    depends_on:
-      - backend
+      - "80:80"
     environment:
-      # Point to the local backend service
-      - API_URL=http://backend:8000/api
+      - API_URL=/
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
 
-# Volumes
-volumes:
-  postgres_data:
-  pgadmin_data:
+networks:
+  app-network:
+    driver: bridge
