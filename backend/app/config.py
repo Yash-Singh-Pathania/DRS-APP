@@ -17,10 +17,35 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         # Build the connection URL from individual credentials
-        ssl_param = "?sslmode=require" if self.DB_SSL else ""
-        db_url = f"postgres://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}"
-        print(f"Using database URL: postgres://{self.DB_USERNAME}:****@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}{ssl_param}")
+        db_url = f"postgres://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}"
+        print(f"Using database URL: postgres://{self.DB_USERNAME}:****@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}")
         return db_url
+    
+    @property
+    def database_config(self) -> dict:
+        """Return database configuration with SSL settings for asyncpg."""
+        config = {
+            "connections": {
+                "default": {
+                    "engine": "tortoise.backends.asyncpg",
+                    "credentials": {
+                        "host": self.DB_HOST,
+                        "port": self.DB_PORT,
+                        "user": self.DB_USERNAME,
+                        "password": self.DB_PASSWORD,
+                        "database": self.DB_DATABASE,
+                        "ssl": "require" if self.DB_SSL else None
+                    }
+                }
+            },
+            "apps": {
+                "models": {
+                    "models": ["app.models", "aerich.models"],
+                    "default_connection": "default",
+                }
+            }
+        }
+        return config
     
     # JWT settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-please-change-in-production")

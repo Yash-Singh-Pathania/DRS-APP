@@ -7,12 +7,19 @@ from app.config import settings
 
 # Initialize Tortoise ORM
 async def init_db():
-    await Tortoise.init(
-        db_url=settings.DATABASE_URL,
-        modules={"models": ["app.models"]}
-    )
-    # Generate schemas
-    await Tortoise.generate_schemas()
+    db_config = settings.database_config
+    print("Initializing database with config:", 
+          {k: v if k != 'password' else '****' 
+           for k, v in db_config['connections']['default']['credentials'].items()})
+    
+    try:
+        await Tortoise.init(config=db_config)
+        # Generate schemas
+        await Tortoise.generate_schemas()
+        print("Database connection successful")
+    except Exception as e:
+        print(f"Failed to initialize database: {str(e)}")
+        raise
 
 # Lifespan context manager for FastAPI
 @asynccontextmanager
